@@ -1,0 +1,255 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Primitives
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email == 'osimakram90644@gmail.com' && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Entity Validators
+    function isValidProduct(data) {
+      return data.title is string && data.title.size() >= 2 && data.title.size() <= 100 &&
+             data.description is string && data.description.size() <= 1000 &&
+             data.priceInr is int && data.priceInr >= 1 && data.priceInr <= 10000000 &&
+             data.mrpInr is int && data.mrpInr >= data.priceInr && data.mrpInr <= 10000000 &&
+             data.category in ['Electronics', 'Fashion', 'Home', 'Beauty', 'Accessories'] &&
+             data.imagePreset is string && data.imagePreset.size() >= 1 && data.imagePreset.size() <= 40 &&
+             (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 500)) &&
+             data.stock is int && data.stock >= 0 && data.stock <= 100000 &&
+             data.featured is bool &&
+             data.active is bool;
+    }
+
+    function isValidStoreSettings(data) {
+      return data.storeName is string && data.storeName.size() >= 2 && data.storeName.size() <= 60 &&
+             data.tagline is string && data.tagline.size() <= 120 &&
+             data.contactPhone is string && data.contactPhone.size() >= 8 && data.contactPhone.size() <= 20 &&
+             data.contactEmail is string && data.contactEmail.size() >= 5 && data.contactEmail.size() <= 100 &&
+             data.merchantUpiId is string && data.merchantUpiId.size() >= 3 && data.merchantUpiId.size() <= 80 &&
+             data.announcementText is string && data.announcementText.size() <= 200 &&
+             data.storeOpen is bool &&
+             data.upiEnabled is bool &&
+             data.cardGatewayEnabled is bool &&
+             data.codEnabled is bool &&
+             data.promoEnabled is bool &&
+             data.promoCode is string && data.promoCode.size() <= 24 &&
+             data.promoDiscountPercent is int && data.promoDiscountPercent >= 0 && data.promoDiscountPercent <= 80 &&
+             data.deliveryFeeInr is int && data.deliveryFeeInr >= 0 && data.deliveryFeeInr <= 2000 &&
+             data.freeDeliveryAboveInr is int && data.freeDeliveryAboveInr >= 0 && data.freeDeliveryAboveInr <= 100000;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 20)) &&
+             (!('defaultAddress' in data) || (data.defaultAddress is string && data.defaultAddress.size() <= 300)) &&
+             (!('city' in data) || (data.city is string && data.city.size() <= 60)) &&
+             (!('pincode' in data) || (data.pincode is string && data.pincode.size() <= 12));
+    }
+
+    function isValidOrder(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.customerName is string && data.customerName.size() >= 2 && data.customerName.size() <= 80 &&
+             data.customerEmail is string && data.customerEmail.size() >= 3 && data.customerEmail.size() <= 120 &&
+             data.customerPhone is string && data.customerPhone.size() >= 8 && data.customerPhone.size() <= 20 &&
+             data.shippingAddress is string && data.shippingAddress.size() >= 5 && data.shippingAddress.size() <= 300 &&
+             data.city is string && data.city.size() >= 2 && data.city.size() <= 60 &&
+             data.pincode is string && data.pincode.size() >= 4 && data.pincode.size() <= 12 &&
+             data.itemsSummary is string && data.itemsSummary.size() >= 2 && data.itemsSummary.size() <= 1000 &&
+             data.items is list && data.items.size() >= 1 && data.items.size() <= 30 && data.items[0] is map &&
+             data.itemCount is int && data.itemCount >= 1 && data.itemCount <= 500 &&
+             data.subtotalInr is int && data.subtotalInr >= 1 && data.subtotalInr <= 100000000 &&
+             data.discountInr is int && data.discountInr >= 0 && data.discountInr <= data.subtotalInr &&
+             data.deliveryFeeInr is int && data.deliveryFeeInr >= 0 && data.deliveryFeeInr <= 5000 &&
+             data.totalInr is int && data.totalInr >= 1 && data.totalInr <= 100000000 &&
+             (!('promoCodeApplied' in data) || (data.promoCodeApplied is string && data.promoCodeApplied.size() <= 24)) &&
+             data.paymentMethod in ['UPI_GATEWAY', 'CARD_GATEWAY', 'COD'] &&
+             data.paymentStatus in ['PAID', 'PENDING', 'FAILED', 'REFUNDED'] &&
+             data.transactionId is string && data.transactionId.size() <= 100 &&
+             data.orderStatus in ['PLACED', 'CONFIRMED', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+    }
+
+    // 1. Publicly readable product catalog, Admin-managed writes
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+
+      allow create: if isAdmin() &&
+                       isValidId(productId) &&
+                       incoming().keys().hasAll([
+                         'title', 'description', 'priceInr', 'mrpInr', 'category',
+                         'imagePreset', 'stock', 'featured', 'active', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'title', 'description', 'priceInr', 'mrpInr', 'category',
+                         'imagePreset', 'imageUrl', 'stock', 'featured', 'active', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidProduct(incoming());
+
+      allow update: if isAdmin() &&
+                       isValidId(productId) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidProduct(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'title', 'description', 'priceInr', 'mrpInr', 'category',
+                         'imagePreset', 'imageUrl', 'stock', 'featured', 'active', 'updatedAt'
+                       ]);
+
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+
+    // 2. Store Control Panel configuration (single public-read config doc, Admin-only writes)
+    match /store_settings/{configId} {
+      allow get: if configId == 'config';
+      allow list: if false;
+
+      allow create, update: if configId == 'config' &&
+                               isAdmin() &&
+                               incoming().keys().hasAll([
+                                 'storeName', 'tagline', 'contactPhone', 'contactEmail', 'merchantUpiId',
+                                 'announcementText', 'storeOpen', 'upiEnabled', 'cardGatewayEnabled',
+                                 'codEnabled', 'promoEnabled', 'promoCode', 'promoDiscountPercent',
+                                 'deliveryFeeInr', 'freeDeliveryAboveInr', 'updatedAt'
+                               ]) &&
+                               incoming().keys().hasOnly([
+                                 'storeName', 'tagline', 'contactPhone', 'contactEmail', 'merchantUpiId',
+                                 'announcementText', 'storeOpen', 'upiEnabled', 'cardGatewayEnabled',
+                                 'codEnabled', 'promoEnabled', 'promoCode', 'promoDiscountPercent',
+                                 'deliveryFeeInr', 'freeDeliveryAboveInr', 'updatedAt'
+                               ]) &&
+                               incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                               isValidStoreSettings(incoming());
+
+      allow delete: if false;
+    }
+
+    // 3. User Profiles (PII isolated to Owner or Admin)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'email', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'displayName', 'email', 'phone', 'defaultAddress', 'city', 'pincode',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'email', 'phone', 'defaultAddress', 'city', 'pincode', 'updatedAt'
+                       ]);
+
+      allow delete: if false;
+    }
+
+    // 4. Customer Orders (Scoped per userId, full visibility & status control for Admin)
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isSignedIn() &&
+                       isValidId(orderId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().orderStatus == 'PLACED' &&
+                       incoming().paymentStatus in ['PAID', 'PENDING'] &&
+                       incoming().keys().hasAll([
+                         'userId', 'customerName', 'customerEmail', 'customerPhone',
+                         'shippingAddress', 'city', 'pincode', 'itemsSummary', 'items',
+                         'itemCount', 'subtotalInr', 'discountInr', 'deliveryFeeInr', 'totalInr',
+                         'paymentMethod', 'paymentStatus', 'transactionId', 'orderStatus',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'customerName', 'customerEmail', 'customerPhone',
+                         'shippingAddress', 'city', 'pincode', 'itemsSummary', 'items',
+                         'itemCount', 'subtotalInr', 'discountInr', 'deliveryFeeInr', 'totalInr',
+                         'promoCodeApplied', 'paymentMethod', 'paymentStatus', 'transactionId',
+                         'orderStatus', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidOrder(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(orderId) &&
+                       isValidOrder(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       (
+                         (isAdmin() &&
+                          incoming().diff(existing()).affectedKeys().hasOnly([
+                            'orderStatus', 'paymentStatus', 'transactionId', 'updatedAt'
+                          ])) ||
+                         (existing().userId == request.auth.uid &&
+                          existing().orderStatus in ['PLACED', 'CONFIRMED'] &&
+                          incoming().orderStatus == 'CANCELLED' &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['orderStatus', 'updatedAt']))
+                       );
+
+      allow delete: if false;
+    }
+
+    // 5. Admin Registry (Prevent self-elevation; managed strictly by existing Admins)
+    match /admins/{adminUid} {
+      allow get: if isSignedIn() && isValidId(adminUid) && (request.auth.uid == adminUid || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isAdmin() &&
+                       isValidId(adminUid) &&
+                       incoming().uid == adminUid &&
+                       incoming().keys().hasAll(['uid', 'email', 'addedBy', 'createdAt']) &&
+                       incoming().keys().hasOnly(['uid', 'email', 'addedBy', 'createdAt']) &&
+                       incoming().email is string && incoming().email.size() >= 3 && incoming().email.size() <= 120 &&
+                       incoming().addedBy == request.auth.uid &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time;
+
+      allow update: if false;
+      allow delete: if isAdmin() && isValidId(adminUid);
+    }
+  }
+}

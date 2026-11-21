@@ -1,0 +1,6 @@
+{
+  "name": "BazaarHub",
+  "description": "Online shopping app with payment gateway integration, Firebase authentication, control panel, and admin dashboard for managing products and orders.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

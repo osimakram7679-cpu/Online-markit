@@ -1,0 +1,222 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Catalog product item managed by admin and browsed by shoppers.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "priceInr": { "type": "integer" },
+        "mrpInr": { "type": "integer" },
+        "category": {
+          "type": "string",
+          "enum": ["Electronics", "Fashion", "Home", "Beauty", "Accessories"]
+        },
+        "imagePreset": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "stock": { "type": "integer" },
+        "featured": { "type": "boolean" },
+        "active": { "type": "boolean" },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "priceInr",
+        "mrpInr",
+        "category",
+        "imagePreset",
+        "stock",
+        "featured",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Control panel configuration for store details, payment gateways, promos, and delivery rules.",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string" },
+        "tagline": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "contactEmail": { "type": "string" },
+        "merchantUpiId": { "type": "string" },
+        "announcementText": { "type": "string" },
+        "storeOpen": { "type": "boolean" },
+        "upiEnabled": { "type": "boolean" },
+        "cardGatewayEnabled": { "type": "boolean" },
+        "codEnabled": { "type": "boolean" },
+        "promoEnabled": { "type": "boolean" },
+        "promoCode": { "type": "string" },
+        "promoDiscountPercent": { "type": "integer" },
+        "deliveryFeeInr": { "type": "integer" },
+        "freeDeliveryAboveInr": { "type": "integer" },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        }
+      },
+      "required": [
+        "storeName",
+        "tagline",
+        "contactPhone",
+        "contactEmail",
+        "merchantUpiId",
+        "announcementText",
+        "storeOpen",
+        "upiEnabled",
+        "cardGatewayEnabled",
+        "codEnabled",
+        "promoEnabled",
+        "promoCode",
+        "promoDiscountPercent",
+        "deliveryFeeInr",
+        "freeDeliveryAboveInr",
+        "updatedAt"
+      ]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Customer profile and saved shipping details isolated per user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "defaultAddress": { "type": "string" },
+        "city": { "type": "string" },
+        "pincode": { "type": "string" },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        }
+      },
+      "required": ["userId", "displayName", "email", "createdAt", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase order with payment gateway metadata and fulfillment status.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "shippingAddress": { "type": "string" },
+        "city": { "type": "string" },
+        "pincode": { "type": "string" },
+        "itemsSummary": { "type": "string" },
+        "items": { "type": "array" },
+        "itemCount": { "type": "integer" },
+        "subtotalInr": { "type": "integer" },
+        "discountInr": { "type": "integer" },
+        "deliveryFeeInr": { "type": "integer" },
+        "totalInr": { "type": "integer" },
+        "promoCodeApplied": { "type": "string" },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["UPI_GATEWAY", "CARD_GATEWAY", "COD"]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["PAID", "PENDING", "FAILED", "REFUNDED"]
+        },
+        "transactionId": { "type": "string" },
+        "orderStatus": {
+          "type": "string",
+          "enum": ["PLACED", "CONFIRMED", "PACKED", "SHIPPED", "DELIVERED", "CANCELLED"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        }
+      },
+      "required": [
+        "userId",
+        "customerName",
+        "customerEmail",
+        "customerPhone",
+        "shippingAddress",
+        "city",
+        "pincode",
+        "itemsSummary",
+        "items",
+        "itemCount",
+        "subtotalInr",
+        "discountInr",
+        "deliveryFeeInr",
+        "totalInr",
+        "paymentMethod",
+        "paymentStatus",
+        "transactionId",
+        "orderStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted admin UID registry managed by existing admins.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "addedBy": { "type": "string" },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp()"
+        }
+      },
+      "required": ["uid", "email", "addedBy", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Publicly readable product catalog managed by admins."
+    },
+    "/store_settings/{configId}": {
+      "schema": { "$ref": "#/entities/StoreSettings" },
+      "description": "Store control panel configuration document (store_settings/config)."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Per-user customer profile and saved shipping address."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders scoped by userId and accessible to admins."
+    },
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Additional admin user registry."
+    }
+  }
+}

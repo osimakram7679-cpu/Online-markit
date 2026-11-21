@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">BazaarHub</string>
+    <string name="store_tagline">Curated Essentials &amp; Seamless Payments</string>
+    <string name="default_contact_phone">7679100108</string>
+    <string name="default_contact_email">osimakram90644@gmail.com</string>
+    <string name="tab_shop">Shop</string>
+    <string name="tab_cart">Cart</string>
+    <string name="tab_orders">Orders</string>
+    <string name="tab_control">Account</string>
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="admin_dashboard_title">Admin &amp; Control Panel</string>
+</resources>
